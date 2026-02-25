@@ -35,63 +35,60 @@ namespace MFrameWork
         public bool InitUIInfo()
         {
             m_uiDict = new Dictionary<string, MUIBase>();
-            // 创建UI根节点
+
+            // ====== 第1步：创建UIRoot和Canvas ======
             m_uiRoot = new GameObject("UIRoot");
-            m_uiRoot.AddComponent<CoroutineRunner>(); // 给它一个跑协程的身份
+            m_uiRoot.AddComponent<CoroutineRunner>();
             GameObject.DontDestroyOnLoad(m_uiRoot);
 
-            // 创建全局 Canvas
+            // ====== 第2步：创建Canvas ======
             GameObject canvasObj = new GameObject("Canvas");
             canvasObj.transform.SetParent(m_uiRoot.transform);
             Canvas canvas = canvasObj.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvasObj.AddComponent<GraphicRaycaster>();
 
-            // 添加 Canvas Scaler 组件以支持分辨率适配
             CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(2560, 1440); // 设置你的设计分辨率
+            scaler.referenceResolution = new Vector2(2560, 1440);
 
-            // 创建 EventSystem
+            // ====== 第3步：创建EventSystem ======
             GameObject eventSystemObj = new GameObject("EventSystem");
             eventSystemObj.transform.SetParent(m_uiRoot.transform);
             eventSystemObj.AddComponent<EventSystem>();
             eventSystemObj.AddComponent<StandaloneInputModule>();
 
-            // --- 以下是修改的核心部分 ---
-
-            // 创建一个函数来生成全屏的层级节点
+            // ====== 第4步：创建UI层级 ======
             System.Func<string, Transform> createFullScreenLayer = (string name) =>
             {
                 GameObject layerObj = new GameObject(name);
                 layerObj.transform.SetParent(canvasObj.transform);
 
-                // 添加 Rect Transform 组件
                 RectTransform rectTrans = layerObj.AddComponent<RectTransform>();
-
-                // 设置锚点以填充整个父对象 (Canvas)
                 rectTrans.anchorMin = Vector2.zero;
                 rectTrans.anchorMax = Vector2.one;
-
-                // 设置偏移量为0
                 rectTrans.offsetMin = Vector2.zero;
                 rectTrans.offsetMax = Vector2.zero;
-                RegisterUI("UITransition", new UITransition()); 
-                RegisterUI("GameHUD", new GameHUDController());
-                ActiveUI("GameHUD");
-                RegisterUI("TalkPanel", new TalkUIController());
-                RegisterUI("TaskPanel", new TaskUIController());
+
                 return layerObj.transform;
             };
 
-            // 使用上面的函数创建各个层级
             m_transNormal = createFullScreenLayer("NormalLayer");
             m_transTop = createFullScreenLayer("TopLayer");
             m_transUpper = createFullScreenLayer("UpperLayer");
             m_transHud = createFullScreenLayer("HudLayer");
-            // ========== 新增：初始化遮罩控制器 ==========
+
+            // ====== 第5步：初始化Mask（在所有层级创建完成后） ======
             InitMaskController();
-            
+
+            // ====== 第6步：注册UI（必须在层级创建完成后） ======
+            RegisterUI("UITransition", new UITransition());
+            RegisterUI("GameHUD", new GameHUDController());
+            ActiveUI("GameHUD");
+            RegisterUI("TalkPanel", new TalkUIController());
+            RegisterUI("TaskPanel", new TaskUIController());
+            // ? 不在这里注册SMPuzzleGamePanel
+
             return true;
         }
 
